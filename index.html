@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personalized Launchpad</title>
+    <title>Home</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -962,6 +962,7 @@
 
             const name = nameInput.value.trim();
             const url = urlInput.value.trim();
+            // The fix is here: iconInput is now guaranteed to exist!
             const icon = iconInput.value.trim() || 'link'; 
 
             if (!name || !url) {
@@ -1186,9 +1187,9 @@
         <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-700 transform transition-all duration-300 scale-100">
             <h3 class="text-2xl font-bold text-white mb-6">Add New Bookmark</h3>
             <div class="space-y-4">
-                <input type="text" id="bookmark-name" placeholder="Name (e.g., Google News)"
+                <input type="text" id="bookmark-name" placeholder="Name (e.g., Google)"
                         class="w-full p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors">
-                <input type="url" id="bookmark-url" placeholder="URL (e.g., https://news.google.com)"
+                <input type="url" id="bookmark-url" placeholder="URL (e.g., https://www.google.com)"
                         class="w-full p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors">
             </div>
             <div class="flex justify-end space-x-4 mt-6">
