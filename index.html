@@ -862,6 +862,13 @@
                 // Ensure deadline is a Date object before calculating
                 const deadlineDate = assignment.deadline instanceof Date ? assignment.deadline : new Date(assignment.deadline);
 
+                // START: MODIFICATION FOR DD/MM/YYYY FORMAT
+                const day = String(deadlineDate.getDate()).padStart(2, '0');
+                const month = String(deadlineDate.getMonth() + 1).padStart(2, '0');
+                const year = deadlineDate.getFullYear();
+                const formattedDate = `${day}/${month}/${year}`; // European format (dd/mm/yyyy)
+                // END: MODIFICATION FOR DD/MM/YYYY FORMAT
+
                 const countdownHTML = `
                     <div id="countdown-${assignment.id}" class="text-xs font-mono text-yellow-300 mt-1">
                         Calculating...
@@ -873,7 +880,7 @@
                 item.innerHTML = `
                     <div>
                         <p class="text-sm font-semibold text-white">${assignment.title}</p>
-                        <p class="text-xs text-white/70">${deadlineDate.toLocaleDateString()}</p>
+                        <p class="text-xs text-white/70">${formattedDate}</p>
                         ${countdownHTML}
                     </div>
                     <button onclick="window.db.deleteAssignment('${assignment.id}')"
@@ -958,12 +965,11 @@
         const handleAddBookmark = async () => {
             const nameInput = document.getElementById('bookmark-name');
             const urlInput = document.getElementById('bookmark-url');
-            // const iconInput = document.getElementById('bookmark-icon'); // REMOVED
+            const iconInput = document.getElementById('bookmark-icon'); 
 
             const name = nameInput.value.trim();
             const url = urlInput.value.trim();
-            // const icon = iconInput.value.trim() || 'link'; // MODIFIED: Always use default
-            const icon = 'link'; 
+            const icon = iconInput.value.trim() || 'link'; 
 
             if (!name || !url) {
                 console.error('Validation Error: Please enter both a name and a URL.');
@@ -978,7 +984,7 @@
                 // Reset form and close modal
                 nameInput.value = '';
                 urlInput.value = '';
-                // iconInput.value = ''; // REMOVED
+                iconInput.value = '';
                 closeBookmarkModal();
             } catch (error) {
                 console.error("Failed to add bookmark:", error);
@@ -1143,7 +1149,7 @@
             <div class="lg:col-span-2 p-6 bg-white/10 rounded-3xl backdrop-blur-xl shadow-2xl h-fit">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-bold text-white flex items-center">
-                        <span data-lucide="calendar-check" class="w-6 h-6 mr-2 text-green-400"></span>
+                        <span data-lucide="calendar-days" class="w-6 h-6 mr-2 text-green-400"></span>
                         Upcoming Assignments
                     </h2>
                     <button id="open-assignment-modal-btn"
@@ -1245,4 +1251,3 @@
     </body>
 
 </html>
-
