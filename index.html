@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
+    <title>Personalized Launchpad</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -16,8 +16,8 @@
             overflow: hidden; /* Prevent body scroll */
         }
         #background-container {
-            /* Initial placeholder for safe loading */
-            background-image: url('https://placehold.co/1920x1080/0f172a/94a3b8?text=Loading+Background');
+            /* Initial background color, no text placeholder */
+            background-image: url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1 1\'%3E%3Crect width=\'1\' height=\'1\' fill=\'%230f172a\'/%3E%3C/svg%3E'); 
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -27,7 +27,7 @@
             width: 100%;
             height: 100%;
             z-index: -1;
-            filter: brightness(1); /* Darken for better text contrast */
+            /* The darkened filter is REMOVED */
             transition: background-image 1s ease-in-out; /* Smooth background transition */
         }
         .scroll-container {
@@ -45,10 +45,20 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
         }
         .bookmark-icon:hover {
-            transform: scale(1.1) translateY(-3px);
+            transform: scale(1.05) translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
             border-color: #3b82f6;
         }
+        
+        /* UPDATED: Favicon styles (from 32px to 24px) */
+        .bookmark-favicon {
+            width: 24px; /* Set fixed size for favicons */
+            height: 24px;
+            object-fit: contain;
+            /* Optional: add a slight shadow for visibility on dark backgrounds */
+            filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+        }
+
         .mcast-link-item {
             transition: background-color 0.3s, transform 0.3s;
             cursor: pointer; /* Indicate it's clickable */
@@ -67,7 +77,7 @@
             opacity: 1;
         }
 
-        /* NEW: Styles for background gallery thumbnails */
+        /* Styles for background gallery thumbnails */
         .background-thumbnail {
             width: 100%;
             padding-top: 56.25%; /* 16:9 Aspect Ratio */
@@ -342,7 +352,8 @@
                 // Fallback if no backgrounds are available
                 currentBackgroundId = null;
                 localStorage.removeItem(CURRENT_BG_KEY);
-                backgroundContainer.style.backgroundImage = `url('https://placehold.co/1920x1080/0f172a/94a3b8?text=Add+Your+First+Background')`;
+                // NEW: Removed placeholder text for a smoother initial look (just dark background)
+                backgroundContainer.style.backgroundImage = `url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 1 1\\'%3E%3Crect width=\\'1\\' height=\\'1\\' fill=\\'%230f172a\\'/%3E%3C/svg%3E')`; 
             }
         };
 
@@ -587,7 +598,6 @@
             let countdownHTML;
             let icon = "calendar";
             let statusClass = "text-blue-300";
-            let mainTitle = title;
             let subText = `Next Up: <span class="font-bold text-white">${title}</span>`;
 
             if (isCurrent) {
@@ -596,7 +606,6 @@
                  const currentHours = Math.floor(currentRemainingMinutes / 60);
                  const currentMinutes = Math.floor(currentRemainingMinutes % 60);
                  
-                 mainTitle = currentTitle;
                  statusClass = currentTitle === "BREAK" ? "text-green-300" : "text-purple-300";
                  icon = currentTitle === "BREAK" ? "coffee" : "hourglass";
                  subText = `Currently in: <span class="font-bold text-white">${currentTitle}</span>`;
@@ -626,7 +635,6 @@
             } else {
                 // End of all scheduled activities
                 countdownHTML = "Finished";
-                mainTitle = "No More Lessons Today";
                 icon = "sun";
                 statusClass = "text-gray-400";
                 subText = "Classes are over. Enjoy your evening!";
@@ -759,6 +767,20 @@
             });
         };
         
+        /** Extracts the base domain from a full URL. */
+        const getBaseDomain = (url) => {
+            try {
+                // Ensure URL has a protocol for parsing, add https if missing
+                const safeUrl = url.startsWith('http') ? url : `https://${url}`;
+                const domain = new URL(safeUrl).hostname;
+                // Remove 'www.' prefix if present
+                return domain.startsWith('www.') ? domain.substring(4) : domain;
+            } catch (e) {
+                console.error("Invalid URL for domain extraction:", url);
+                return null;
+            }
+        };
+
         // --- Rendering Functions (No change here, just included for completeness) ---
 
         /** Renders the MCAST links list. */
@@ -784,26 +806,38 @@
         window.renderBookmarks = (newBookmarks) => {
             bookmarks = newBookmarks;
             const container = document.getElementById('bookmark-container');
-            container.innerHTML = bookmarks.map(b => `
+            container.innerHTML = bookmarks.map(b => {
+                const domain = getBaseDomain(b.url);
+                const faviconUrl = domain ? `https://s2.googleusercontent.com/s2/favicons?domain=${domain}&sz=64` : null;
+
+                // Determine content of the bookmark tile
+                // UPDATED: Lucide fallback icon size changed from w-8 h-8 to w-6 h-6
+                const iconContent = faviconUrl 
+                    ? `<img src="${faviconUrl}" alt="${b.name} Favicon" class="bookmark-favicon" onerror="this.outerHTML='<span data-lucide=${b.icon || 'link'} class=\\'w-6 h-6 text-white\\'></span>'"/>`
+                    : `<span data-lucide="${b.icon || 'link'}" class="w-6 h-6 text-white"></span>`;
+
+
+                return `
                 <div class="bookmark-item-wrap relative">
                     <a href="${b.url}" target="_blank" rel="noopener noreferrer" title="${b.name}"
                         class="bookmark-icon flex flex-col items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/10 border border-white/20 rounded-2xl hover:border-blue-400">
-                        <span data-lucide="${b.icon || 'star'}" class="w-8 h-8 text-white"></span>
+                        ${iconContent}
                         <span class="text-xs text-white/80 mt-1 truncate max-w-full">${b.name}</span>
                     </a>
                     <button onclick="window.db.deleteBookmark('${b.id}')"
-                            class="delete-btn absolute top-[-5px] right-[-5px] bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors">
+                            class="delete-btn absolute top-[-5px] right-[-5px] w-6 h-6 flex items-center justify-center bg-white/20 text-white rounded-full p-0.5 shadow-md hover:bg-white/40 transition-colors">
                         <span data-lucide="x" class="w-3 h-3"></span>
                     </button>
                 </div>
-            `).join('');
+                `;
+            }).join('');
 
             // Add the 'Add Bookmark' button at the end
             container.innerHTML += `
                 <button id="open-bookmark-modal-btn"
                         class="flex flex-col items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/5 border border-white/10 rounded-2xl text-white/50 hover:text-white hover:border-blue-500 transition-all duration-300"
                         title="Add New Bookmark">
-                    <span data-lucide="plus" class="w-6 h-6"></span>
+                    <span data-lucide="plus" class="w-8 h-8"></span>
                     <span class="text-xs mt-1">Add</span>
                 </button>
             `;
@@ -1024,6 +1058,7 @@
             
             // Attach event listeners for Bookmark Modal
             document.getElementById('bookmark-container').addEventListener('click', (e) => {
+                // Use closest to check if the click target or any parent is the add button
                 if (e.target.closest('#open-bookmark-modal-btn')) {
                     openBookmarkModal();
                 }
@@ -1079,10 +1114,10 @@
 
             <div class="lg:col-span-1 flex flex-col items-center justify-center p-6 space-y-8">
                 
-                <div id="next-lesson-widget" class="w-full max-w-xl p-4 bg-white/10 rounded-xl backdrop-blur-md shadow-lg border border-white/20">
+                <div id="next-lesson-widget" class="w-full max-w-2xl p-4 bg-white/10 rounded-xl backdrop-blur-md shadow-lg border border-white/20">
                     <p class="text-white/50 text-center">Loading timetable...</p>
                 </div>
-                <form id="search-form" class="w-full max-w-xl relative">
+                <form id="search-form" class="w-full max-w-2xl relative">
                     <input type="text" id="search-input" placeholder="Search Google or type a URL..."
                             class="w-full p-4 pl-12 bg-white/90 text-gray-900 border-2 border-transparent focus:border-blue-500 rounded-full shadow-lg outline-none transition-all duration-300"
                             autofocus>
@@ -1090,7 +1125,7 @@
                     <button type="submit" class="hidden">Search</button>
                 </form>
 
-                <div id="bookmark-container" class="grid grid-cols-4 gap-4 sm:gap-6 p-4 rounded-3xl bg-white/5 backdrop-blur-md shadow-inner">
+                <div id="bookmark-container" class="grid grid-cols-4 gap-4 sm:gap-6 p-4 rounded-3xl bg-white/5 backdrop-blur-md shadow-inner max-w-2xl w-full">
                     </div>
 
                 <div class="flex justify-center w-full">
@@ -1155,7 +1190,7 @@
                         class="w-full p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors">
                 <input type="url" id="bookmark-url" placeholder="URL (e.g., https://news.google.com)"
                         class="w-full p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors">
-                <input type="text" id="bookmark-icon" placeholder="Lucide Icon Name (e.g., 'globe', 'mail')"
+                <input type="text" id="bookmark-icon" placeholder="Lucide Icon Name (Fallback, e.g., 'globe', 'mail')"
                         class="w-full p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors">
             </div>
             <div class="flex justify-end space-x-4 mt-6">
@@ -1211,6 +1246,3 @@
     </body>
 
 </html>
-
-
-
