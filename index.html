@@ -45,7 +45,7 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
         }
         .bookmark-icon:hover {
-            transform: scale(1.05) translateY(-2px);
+            transform: scale(1.05); /* MODIFIED: Removed translateY(-2px) to fix misalignment */
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
             border-color: #3b82f6;
         }
@@ -1099,9 +1099,9 @@
 
     <div class="scroll-container flex justify-center items-start lg:items-center">
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-7xl pt-16 lg:pt-0 pb-16">
+        <div class="grid grid-cols-1 lg:grid-cols-7 gap-8 w-full max-w-7xl pt-16 lg:pt-0 pb-16">
 
-            <div class="lg:col-span-1 p-6 bg-white/10 rounded-3xl backdrop-blur-xl shadow-2xl h-fit">
+            <div class="lg:col-span-2 p-6 bg-white/10 rounded-3xl backdrop-blur-xl shadow-2xl h-fit">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-bold text-white flex items-center">
                         <span data-lucide="graduation-cap" class="w-6 h-6 mr-2 text-blue-400"></span>
@@ -1112,7 +1112,7 @@
                     </div>
             </div>
 
-            <div class="lg:col-span-1 flex flex-col items-center justify-center p-6 space-y-8">
+            <div class="lg:col-span-3 flex flex-col items-center justify-center p-6 space-y-8">
                 
                 <div id="next-lesson-widget" class="w-full max-w-2xl p-4 bg-white/10 rounded-xl backdrop-blur-md shadow-lg border border-white/20">
                     <p class="text-white/50 text-center">Loading timetable...</p>
@@ -1139,7 +1139,7 @@
                 <p id="user-id-display" class="text-xs text-white/50 mt-4"></p>
             </div>
 
-            <div class="lg:col-span-1 p-6 bg-white/10 rounded-3xl backdrop-blur-xl shadow-2xl h-fit">
+            <div class="lg:col-span-2 p-6 bg-white/10 rounded-3xl backdrop-blur-xl shadow-2xl h-fit">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-bold text-white flex items-center">
                         <span data-lucide="calendar-check" class="w-6 h-6 mr-2 text-green-400"></span>
@@ -1189,8 +1189,6 @@
                 <input type="text" id="bookmark-name" placeholder="Name (e.g., Google News)"
                         class="w-full p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors">
                 <input type="url" id="bookmark-url" placeholder="URL (e.g., https://news.google.com)"
-                        class="w-full p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors">
-                <input type="text" id="bookmark-icon" placeholder="Lucide Icon Name (Fallback, e.g., 'globe', 'mail')"
                         class="w-full p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors">
             </div>
             <div class="flex justify-end space-x-4 mt-6">
