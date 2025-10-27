@@ -441,10 +441,226 @@
         // --- END MCAST Links Data ---
 
 
+        // --- Timetable Data (NEW SECTION) ---
+        // Note: Time is stored as H:MM string for easy comparison.
+        const TIMETABLE = {
+            // Each day has an array of schedule items, ordered by start time
+            Monday: [
+                { start: "08:30", end: "10:30", title: "Statistics for Computer Science", location: "ICT-B03" },
+                { start: "10:30", end: "11:30", title: "BREAK", location: null },
+                { start: "11:30", end: "13:00", title: "Systems Programming", location: "ICT-209" },
+                { start: "13:00", end: "17:00", title: "END OF DAY", location: null },
+            ],
+            Tuesday: [
+                { start: "08:00", end: "10:00", title: "Image Processing and Computer Vision", location: "ICT-103" },
+                { start: "10:00", end: "12:00", title: "BREAK", location: null },
+                { start: "12:00", end: "14:00", title: "Data Structures And Algorithms II", location: "ICT-309" },
+                { start: "14:00", end: "17:00", title: "END OF DAY", location: null },
+            ],
+            Wednesday: [
+                { start: "08:00", end: "17:00", title: "FREE DAY / Independent Study", location: null },
+            ],
+            Thursday: [
+                { start: "10:30", end: "12:30", title: "Systems Programming", location: "ICT-B02" },
+                { start: "12:30", end: "14:30", title: "Data Structures And Algorithms II", location: "ICT-209" },
+                { start: "14:30", end: "17:00", title: "END OF DAY", location: null },
+            ],
+            Friday: [
+                { start: "08:30", end: "10:30", title: "Statistics for Computer Science", location: "ICT-B05" },
+                { start: "10:30", end: "11:30", title: "BREAK", location: null },
+                { start: "11:30", end: "12:00", title: "Image Processing and Computer Vision", location: "ICT-103" },
+                { start: "12:00", end: "17:00", title: "END OF DAY", location: null },
+            ],
+            Saturday: [
+                { start: "08:00", end: "23:59", title: "WEEKEND", location: null },
+            ],
+            Sunday: [
+                { start: "00:00", end: "23:59", title: "WEEKEND", location: null },
+            ]
+        };
+        const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        let nextLessonInterval;
+
+        // Function to convert "H:MM" to a total minutes from midnight
+        const timeToMinutes = (time) => {
+            const [h, m] = time.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        // Function to find the next scheduled event
+        const getNextScheduleItem = () => {
+            const now = new Date();
+            const dayIndex = now.getDay();
+            const currentDayName = DAYS_OF_WEEK[dayIndex];
+            const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+            // 1. Check today's schedule
+            let todaySchedule = TIMETABLE[currentDayName];
+            
+            // Filter out items that have already passed
+            // We need to check if we are currently *in* a lesson or break
+            let currentItem = todaySchedule.find(item => 
+                 timeToMinutes(item.start) <= nowMinutes && timeToMinutes(item.end) > nowMinutes
+            );
+
+            if (currentItem && currentItem.title !== "END OF DAY" && currentItem.title !== "WEEKEND") {
+                // If currently in a lesson/break, the next item is the one that starts right after it
+                 let nextItem = todaySchedule.find(item => timeToMinutes(item.start) === timeToMinutes(currentItem.end));
+                 if (nextItem && nextItem.title !== "END OF DAY") {
+                     return {
+                        ...nextItem,
+                        day: currentDayName,
+                        remainingMinutes: timeToMinutes(nextItem.start) - nowMinutes,
+                        isCurrent: true, // Special flag to show current activity
+                        currentTitle: currentItem.title,
+                        currentLocation: currentItem.location,
+                        currentEnd: currentItem.end
+                    };
+                 }
+            }
+
+
+            // Find the next item that hasn't started yet
+            let nextItem = todaySchedule.find(item => timeToMinutes(item.start) > nowMinutes);
+
+            if (nextItem && nextItem.title !== "END OF DAY") {
+                // Found a lesson or break for today
+                return {
+                    ...nextItem,
+                    day: currentDayName,
+                    remainingMinutes: timeToMinutes(nextItem.start) - nowMinutes
+                };
+            }
+
+            // 2. If nothing is left today (or it's weekend/after END OF DAY), find the first lesson of the next day.
+            for (let i = 1; i <= 7; i++) {
+                const nextDayIndex = (dayIndex + i) % 7;
+                const nextDayName = DAYS_OF_WEEK[nextDayIndex];
+                const nextDaySchedule = TIMETABLE[nextDayName];
+                
+                // Find the first scheduled event that isn't a weekend or end-of-day marker
+                const firstEvent = nextDaySchedule.find(item => 
+                    item.title !== "END OF DAY" &&
+                    item.title !== "WEEKEND"
+                );
+
+                if (firstEvent) {
+                     // Calculate time until next day's midnight + time until lesson start
+                     let remainingDayMinutes = (24 * 60) - nowMinutes; // Minutes until midnight tonight
+                     let totalMinutes = remainingDayMinutes;
+
+                     // Add minutes for each full day in between (i-1 because we calculated the current day's remainder)
+                     for(let j = 1; j < i; j++) {
+                         totalMinutes += 24 * 60;
+                     }
+                     
+                     // Add the minutes from midnight of the next day until the lesson starts
+                     totalMinutes += timeToMinutes(firstEvent.start);
+                     
+                     return {
+                        ...firstEvent,
+                        day: nextDayName,
+                        remainingMinutes: totalMinutes,
+                        isNextDay: true
+                    };
+                }
+            }
+            
+            // Fallback for an unlikely scenario
+            return { title: "Schedule Error", start: null, end: null, location: null, remainingMinutes: 0 };
+        };
+
+        // Function to render the schedule widget
+        const renderScheduleWidget = () => {
+            const widgetEl = document.getElementById('next-lesson-widget');
+            if (!widgetEl) return;
+
+            const nextItem = getNextScheduleItem();
+            let { title, start, end, location, remainingMinutes, day, isNextDay, isCurrent, currentTitle, currentLocation, currentEnd } = nextItem;
+            
+            // Handle the countdown
+            const totalSeconds = remainingMinutes * 60;
+            const days = Math.floor(totalSeconds / (60 * 60 * 24));
+            const hours = Math.floor((totalSeconds % (60 * 60 * 24)) / (60 * 60));
+            const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+
+            let countdownHTML;
+            let icon = "calendar";
+            let statusClass = "text-blue-300";
+            let mainTitle = title;
+            let subText = `Next Up: <span class="font-bold text-white">${title}</span>`;
+
+            if (isCurrent) {
+                 // If currently in an activity, display that activity and count down to the *next* start time
+                 const currentRemainingMinutes = timeToMinutes(currentEnd) - (new Date().getHours() * 60 + new Date().getMinutes());
+                 const currentHours = Math.floor(currentRemainingMinutes / 60);
+                 const currentMinutes = Math.floor(currentRemainingMinutes % 60);
+                 
+                 mainTitle = currentTitle;
+                 statusClass = currentTitle === "BREAK" ? "text-green-300" : "text-purple-300";
+                 icon = currentTitle === "BREAK" ? "coffee" : "hourglass";
+                 subText = `Currently in: <span class="font-bold text-white">${currentTitle}</span>`;
+                 countdownHTML = `<span class="font-bold">${currentHours}</span>h <span class="font-bold">${currentMinutes}</span>m left`;
+
+                 // The bottom row shows the START time of the *next* thing
+                 title = title; // Next item's title
+                 start = start; // Next item's start time
+                 location = location; // Next item's location
+
+            } else if (days > 0) {
+                // If more than a day away (i.e., next day's first lesson)
+                countdownHTML = `<span class="font-bold">${days}</span>d <span class="font-bold">${hours}</span>h <span class="font-bold">${minutes}</span>m`;
+                icon = "calendar-check";
+                statusClass = "text-yellow-300";
+                subText = `First Lesson: <span class="font-bold text-white">${title}</span> (${day})`;
+            } else if (remainingMinutes > 0) {
+                // If less than a day away (today's lesson/break)
+                countdownHTML = `<span class="font-bold">${hours}</span>h <span class="font-bold">${minutes}</span>m`;
+                if (title === "BREAK") {
+                    icon = "coffee";
+                    statusClass = "text-green-300";
+                } else {
+                    icon = "clock";
+                    statusClass = "text-blue-300";
+                }
+            } else {
+                // End of all scheduled activities
+                countdownHTML = "Finished";
+                mainTitle = "No More Lessons Today";
+                icon = "sun";
+                statusClass = "text-gray-400";
+                subText = "Classes are over. Enjoy your evening!";
+                start = '';
+                end = '';
+                location = '';
+            }
+
+            let timeRange = start && end ? `${start} - ${end}` : (isCurrent ? `Ends @ ${currentEnd}` : '');
+
+            widgetEl.innerHTML = `
+                <div class="flex justify-between items-center w-full">
+                    <div class="flex items-center">
+                        <span data-lucide="${icon}" class="w-5 h-5 mr-2 ${statusClass}"></span>
+                        <p class="text-sm text-white/80">${subText}</p>
+                    </div>
+                    <p class="text-sm font-semibold ${statusClass}">${countdownHTML}</p>
+                </div>
+                <div class="flex justify-between items-center w-full mt-1 border-t border-white/10 pt-1">
+                    <p class="text-xs text-white/60">${timeRange}</p>
+                    <p class="text-xs text-white/60">${location ? (isCurrent ? 'Next Location: ' : 'Location: ') + location : ''}</p>
+                </div>
+            `;
+
+            lucide.createIcons(); // Re-initialize icons
+        };
+        // --- END Timetable Data and Logic ---
+
+
         // --- State Management ---
         let assignments = [];
         let bookmarks = []; 
         let countdownInterval;
+
 
         // --- Mock Data Setup (Called if Firestore is unavailable) ---
         window.setupMockData = () => {
@@ -462,6 +678,13 @@
             
             // Render MCAST links
             window.renderMCASTLinks();
+            
+            // Render Timetable Widget
+            renderScheduleWidget();
+            if (nextLessonInterval) {
+                clearInterval(nextLessonInterval);
+            }
+            nextLessonInterval = setInterval(renderScheduleWidget, 60000); // Update every minute
 
             // Override global DB functions to only handle local state for mock mode
             window.db = {
@@ -785,6 +1008,14 @@
             
             // Explicitly call renderMCASTLinks to ensure the list displays immediately
             window.renderMCASTLinks(); 
+            
+            // Timetable Widget Update (Run now and set interval)
+            renderScheduleWidget(); 
+            if (nextLessonInterval) {
+                clearInterval(nextLessonInterval);
+            }
+            // Update every minute
+            nextLessonInterval = setInterval(renderScheduleWidget, 60000); 
 
             // Attach event listeners for Assignment Modal
             document.getElementById('open-assignment-modal-btn').addEventListener('click', openAssignmentModal);
@@ -847,6 +1078,10 @@
             </div>
 
             <div class="lg:col-span-1 flex flex-col items-center justify-center p-6 space-y-8">
+                
+                <div id="next-lesson-widget" class="w-full max-w-xl p-4 bg-white/10 rounded-xl backdrop-blur-md shadow-lg border border-white/20">
+                    <p class="text-white/50 text-center">Loading timetable...</p>
+                </div>
                 <form id="search-form" class="w-full max-w-xl relative">
                     <input type="text" id="search-input" placeholder="Search Google or type a URL..."
                             class="w-full p-4 pl-12 bg-white/90 text-gray-900 border-2 border-transparent focus:border-blue-500 rounded-full shadow-lg outline-none transition-all duration-300"
