@@ -804,7 +804,7 @@
         // REMOVED: Function to display the fixed version timestamp
 
 
-        // --- Rendering Functions (No change here, just included for completeness) ---
+        // --- Rendering Functions (MODIFIED: target="_blank" removed) ---
 
         /** Renders the MCAST links list. */
         window.renderMCASTLinks = () => {
@@ -813,7 +813,6 @@
             container.innerHTML = MCAST_LINKS.map(link => `
                 <div class="mcast-link-item-wrap relative flex items-center group">
                     <a href="${link.url}" 
-                       target="_blank" 
                        rel="noopener noreferrer"
                        title="${link.name}"
                        class="mcast-link-item block w-full text-left p-3 pr-4 rounded-xl bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm transition-all duration-300">
@@ -842,7 +841,7 @@
 
                 return `
                 <div class="bookmark-item-wrap relative">
-                    <a href="${b.url}" target="_blank" rel="noopener noreferrer" title="${b.name}"
+                    <a href="${b.url}" rel="noopener noreferrer" title="${b.name}"
                         class="bookmark-icon flex flex-col items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/10 border border-white/20 rounded-2xl hover:border-blue-400">
                         ${iconContent}
                         <span class="text-xs text-white/80 mt-1 truncate max-w-full">${b.name}</span>
@@ -1275,7 +1274,7 @@
         </div>
     </div>
     
-    <div id="version-timestamp">Last Update 28/10/2025 - 09:39</div>
+    <div id="version-timestamp">Last Update 28/10/2025 - 09:48</div>
     </body>
 
 </html>
