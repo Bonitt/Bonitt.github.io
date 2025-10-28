@@ -796,24 +796,7 @@
             }
         };
         
-        // NEW: Function to display the fixed version timestamp
-        const setVersionTimestamp = () => {
-            const now = new Date();
-            const day = String(now.getDate()).padStart(2, '0');
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const year = now.getFullYear();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            
-            const formattedTime = `${hours}:${minutes}:${seconds}`;
-            const formattedDate = `${day}/${month}/${year}`;
-            
-            const timestampEl = document.getElementById('version-timestamp');
-            if (timestampEl) {
-                timestampEl.innerHTML = `Last Updated: ${formattedDate} ${formattedTime} CET`;
-            }
-        };
+        // REMOVED: Function to display the fixed version timestamp
 
 
         // --- Rendering Functions (No change here, just included for completeness) ---
@@ -1094,8 +1077,7 @@
             // Update every minute
             nextLessonInterval = setInterval(renderScheduleWidget, 60000); 
 
-            // NEW: Set the fixed version timestamp on load
-            setVersionTimestamp();
+            // REMOVED: setVersionTimestamp();
 
             // Attach event listeners for Assignment Modal
             document.getElementById('open-assignment-modal-btn').addEventListener('click', openAssignmentModal);
@@ -1288,7 +1270,7 @@
         </div>
     </div>
     
-    <div id="version-timestamp"></div>
+    <div id="version-timestamp">Last Update 28/10/2025 - 09:21</div>
     </body>
 
 </html>
