@@ -532,18 +532,24 @@
             if (currentItem && currentItem.title !== "END OF DAY" && currentItem.title !== "WEEKEND") {
                 // If currently in a lesson/break, the next item is the one that starts right after it
                  let nextItem = todaySchedule.find(item => timeToMinutes(item.start) === timeToMinutes(currentItem.end));
-                 if (nextItem && nextItem.title !== "END OF DAY") {
+                 
+                 // If there's an immediate next item (e.g., break -> lesson) we show the *current* activity with a countdown to the *start* of the *next* activity.
+                 if (nextItem) {
                      return {
-                        ...nextItem,
+                        ...currentItem, // Return the current item details
                         day: currentDayName,
-                        remainingMinutes: timeToMinutes(nextItem.start) - nowMinutes,
-                        isCurrent: true, // Special flag to show current activity
-                        currentTitle: currentItem.title,
-                        currentLocation: currentItem.location,
-                        currentEnd: currentItem.end,
-                        currentStart: currentItem.start // 🚨 ADDED: Current item's start time
+                        isCurrent: true, 
+                        // Details of the *next* item
+                        nextTitle: nextItem.title,
+                        nextLocation: nextItem.location,
+                        nextStart: nextItem.start,
+                        nextEnd: nextItem.end,
+                        remainingMinutes: timeToMinutes(currentItem.end) - nowMinutes, // Countdown to end of current activity
                     };
                  }
+                 
+                 // If currentItem is the last activity of the day (e.g., Systems Programming 11:30-13:00 followed by END OF DAY)
+                 // Then we fall through to look for the next event, which will be the next day's first lesson.
             }
 
 
@@ -551,11 +557,12 @@
             let nextItem = todaySchedule.find(item => timeToMinutes(item.start) > nowMinutes);
 
             if (nextItem && nextItem.title !== "END OF DAY") {
-                // Found a lesson or break for today
+                // Found a lesson or break for today (which is NOT the current activity)
                 return {
                     ...nextItem,
                     day: currentDayName,
-                    remainingMinutes: timeToMinutes(nextItem.start) - nowMinutes
+                    remainingMinutes: timeToMinutes(nextItem.start) - nowMinutes,
+                    isCurrent: false
                 };
             }
 
@@ -603,8 +610,9 @@
             if (!widgetEl) return;
 
             const nextItem = getNextScheduleItem();
-            // 🚨 MODIFIED: Added currentStart to destructuring
-            let { title, start, end, location, remainingMinutes, day, isNextDay, isCurrent, currentTitle, currentLocation, currentEnd, currentStart } = nextItem; 
+            
+            // Extract properties. Use 'title', 'start', 'end', 'location' for the activity being displayed.
+            let { title, start, end, location, remainingMinutes, day, isNextDay, isCurrent, nextTitle } = nextItem; 
             
             // Handle the countdown
             const totalSeconds = remainingMinutes * 60;
@@ -616,26 +624,27 @@
             let icon = "calendar";
             let statusClass = "text-blue-300";
             let subText = `Next Up: <span class="font-bold text-white">${title}</span>`;
-            // 🚨 NEW: Variable to hold the time range for the bottom line
             let timeRangeToDisplay = '';
             let locationPrefix = 'Location: ';
 
 
             if (isCurrent) {
-                 // If currently in an activity, display that activity and count down to the *end* time
-                 const currentRemainingMinutes = timeToMinutes(currentEnd) - (new Date().getHours() * 60 + new Date().getMinutes());
-                 const currentHours = Math.floor(currentRemainingMinutes / 60);
-                 const currentMinutes = Math.floor(currentRemainingMinutes % 60);
+                 // If currently in an activity, display that activity and count down to its end time
                  
-                 statusClass = currentTitle === "BREAK" ? "text-green-300" : "text-purple-300";
-                 icon = currentTitle === "BREAK" ? "coffee" : "hourglass";
-                 subText = `Currently in: <span class="font-bold text-white">${currentTitle}</span>`;
-                 countdownHTML = `<span class="font-bold">${currentHours}</span>h <span class="font-bold">${currentMinutes}</span>m left`;
+                 statusClass = title === "BREAK" ? "text-green-300" : "text-purple-300";
+                 icon = title === "BREAK" ? "coffee" : "hourglass";
+                 
+                 // Display the current activity as the main title
+                 subText = `Currently in: <span class="font-bold text-white">${title}</span>`;
+                 
+                 // If there's a defined 'nextTitle', we can say 'until next lesson'
+                 const countdownLabel = nextTitle ? `Until ${nextTitle}` : 'Until End';
+                 
+                 countdownHTML = `<span class="font-bold">${hours}</span>h <span class="font-bold">${minutes}</span>m left`;
 
-                 // 🚨 FIX: Display the current lesson's duration and location
-                 timeRangeToDisplay = `${currentStart} - ${currentEnd}`;
-                 location = currentLocation; // Use current location
-                 locationPrefix = 'Location: '; // Ensure correct prefix
+                 // Display the current lesson's duration and location
+                 timeRangeToDisplay = `${start} - ${end}`;
+                 // Location is already correct (location of the current activity)
 
             } else if (days > 0) {
                 // If more than a day away (i.e., next day's first lesson)
@@ -645,7 +654,7 @@
                 subText = `First Lesson: <span class="font-bold text-white">${title}</span> (${day})`;
                 timeRangeToDisplay = `${start} - ${end}`;
             } else if (remainingMinutes > 0) {
-                // If less than a day away (today's lesson/break)
+                // If less than a day away (today's next lesson/break)
                 countdownHTML = `<span class="font-bold">${hours}</span>h <span class="font-bold">${minutes}</span>m`;
                 if (title === "BREAK") {
                     icon = "coffee";
@@ -656,7 +665,7 @@
                 }
                 timeRangeToDisplay = `${start} - ${end}`;
             } else {
-                // End of all scheduled activities
+                // End of all scheduled activities or error
                 countdownHTML = "Finished";
                 icon = "sun";
                 statusClass = "text-gray-400";
@@ -664,7 +673,6 @@
                 location = '';
             }
 
-            // 🚨 UPDATED innerHTML to use the new timeRangeToDisplay variable and simplified location prefix
             widgetEl.innerHTML = `
                 <div class="flex justify-between items-center w-full">
                     <div class="flex items-center">
@@ -1274,7 +1282,7 @@
         </div>
     </div>
     
-    <div id="version-timestamp">Last Update 28/10/2025 - 09:48</div>
+    <div id="version-timestamp">Last Update 28/10/2025 - 12:14</div>
     </body>
 
 </html>
