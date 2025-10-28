@@ -545,6 +545,7 @@
                         nextStart: nextItem.start,
                         nextEnd: nextItem.end,
                         remainingMinutes: timeToMinutes(currentItem.end) - nowMinutes, // Countdown to end of current activity
+                        remainingSeconds: (timeToMinutes(currentItem.end) * 60) - (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()), // Countdown to end in seconds
                     };
                  }
                  
@@ -562,6 +563,7 @@
                     ...nextItem,
                     day: currentDayName,
                     remainingMinutes: timeToMinutes(nextItem.start) - nowMinutes,
+                    remainingSeconds: (timeToMinutes(nextItem.start) * 60) - (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()), // Countdown to start in seconds
                     isCurrent: false
                 };
             }
@@ -580,28 +582,29 @@
 
                 if (firstEvent) {
                      // Calculate time until next day's midnight + time until lesson start
-                     let remainingDayMinutes = (24 * 60) - nowMinutes; // Minutes until midnight tonight
-                     let totalMinutes = remainingDayMinutes;
+                     let remainingDaySeconds = (24 * 60 * 60) - (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()); // Seconds until midnight tonight
+                     let totalSeconds = remainingDaySeconds;
 
-                     // Add minutes for each full day in between (i-1 because we calculated the current day's remainder)
+                     // Add seconds for each full day in between (i-1 because we calculated the current day's remainder)
                      for(let j = 1; j < i; j++) {
-                         totalMinutes += 24 * 60;
+                         totalSeconds += 24 * 60 * 60;
                      }
                      
-                     // Add the minutes from midnight of the next day until the lesson starts
-                     totalMinutes += timeToMinutes(firstEvent.start);
+                     // Add the seconds from midnight of the next day until the lesson starts
+                     totalSeconds += timeToMinutes(firstEvent.start) * 60;
                      
                      return {
                         ...firstEvent,
                         day: nextDayName,
-                        remainingMinutes: totalMinutes,
+                        remainingMinutes: Math.ceil(totalSeconds / 60), // Keep for backward compatibility/quick check
+                        remainingSeconds: totalSeconds, // Use total seconds for accurate display
                         isNextDay: true
                     };
                 }
             }
             
             // Fallback for an unlikely scenario
-            return { title: "Schedule Error", start: null, end: null, location: null, remainingMinutes: 0 };
+            return { title: "Schedule Error", start: null, end: null, location: null, remainingMinutes: 0, remainingSeconds: 0 };
         };
 
         // Function to render the schedule widget
@@ -612,13 +615,14 @@
             const nextItem = getNextScheduleItem();
             
             // Extract properties. Use 'title', 'start', 'end', 'location' for the activity being displayed.
-            let { title, start, end, location, remainingMinutes, day, isNextDay, isCurrent, nextTitle } = nextItem; 
+            let { title, start, end, location, remainingSeconds, day, isNextDay, isCurrent, nextTitle } = nextItem; 
             
-            // Handle the countdown
-            const totalSeconds = remainingMinutes * 60;
+            // Handle the countdown - Use remainingSeconds for accuracy
+            const totalSeconds = remainingSeconds;
             const days = Math.floor(totalSeconds / (60 * 60 * 24));
             const hours = Math.floor((totalSeconds % (60 * 60 * 24)) / (60 * 60));
             const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+            const seconds = totalSeconds % 60; // seconds are still calculated for accuracy, but hidden from display
 
             let countdownHTML;
             let icon = "calendar";
@@ -628,7 +632,7 @@
             let locationPrefix = 'Location: ';
 
 
-            if (isCurrent) {
+            if (isCurrent && totalSeconds > 0) {
                  // If currently in an activity, display that activity and count down to its end time
                  
                  statusClass = title === "BREAK" ? "text-green-300" : "text-purple-300";
@@ -640,6 +644,7 @@
                  // If there's a defined 'nextTitle', we can say 'until next lesson'
                  const countdownLabel = nextTitle ? `Until ${nextTitle}` : 'Until End';
                  
+                 // MODIFIED: REMOVED SECONDS
                  countdownHTML = `<span class="font-bold">${hours}</span>h <span class="font-bold">${minutes}</span>m left`;
 
                  // Display the current lesson's duration and location
@@ -648,13 +653,15 @@
 
             } else if (days > 0) {
                 // If more than a day away (i.e., next day's first lesson)
+                // MODIFIED: REMOVED SECONDS
                 countdownHTML = `<span class="font-bold">${days}</span>d <span class="font-bold">${hours}</span>h <span class="font-bold">${minutes}</span>m`;
                 icon = "calendar-check";
                 statusClass = "text-yellow-300";
                 subText = `First Lesson: <span class="font-bold text-white">${title}</span> (${day})`;
                 timeRangeToDisplay = `${start} - ${end}`;
-            } else if (remainingMinutes > 0) {
+            } else if (totalSeconds > 0) {
                 // If less than a day away (today's next lesson/break)
+                // MODIFIED: REMOVED SECONDS
                 countdownHTML = `<span class="font-bold">${hours}</span>h <span class="font-bold">${minutes}</span>m`;
                 if (title === "BREAK") {
                     icon = "coffee";
@@ -665,7 +672,7 @@
                 }
                 timeRangeToDisplay = `${start} - ${end}`;
             } else {
-                // End of all scheduled activities or error
+                // End of all scheduled activities or error/countdown expired
                 countdownHTML = "Finished";
                 icon = "sun";
                 statusClass = "text-gray-400";
@@ -720,7 +727,8 @@
             if (nextLessonInterval) {
                 clearInterval(nextLessonInterval);
             }
-            nextLessonInterval = setInterval(renderScheduleWidget, 60000); // Update every minute
+            // MODIFIED: Update every second for accuracy (1000ms)
+            nextLessonInterval = setInterval(renderScheduleWidget, 1000); 
 
             // Override global DB functions to only handle local state for mock mode
             window.db = {
@@ -815,7 +823,7 @@
         // --- Rendering Functions (MODIFIED: target="_blank" removed) ---
 
         /** Renders the MCAST links list. */
-        window.renderMCASTLinks = () => {
+        window.renderMCASTLinks = (newLinks) => {
             const container = document.getElementById('mcast-link-list');
             
             container.innerHTML = MCAST_LINKS.map(link => `
@@ -946,6 +954,7 @@
                     return;
                 }
 
+                // Keep seconds in the display for assignments
                 countdownEl.innerHTML = `
                     <span class="font-bold">${remaining.days}</span>d
                     <span class="font-bold">${remaining.hours}</span>h
@@ -1086,8 +1095,8 @@
             if (nextLessonInterval) {
                 clearInterval(nextLessonInterval);
             }
-            // Update every minute
-            nextLessonInterval = setInterval(renderScheduleWidget, 60000); 
+            // Update every second for accuracy (1000ms)
+            nextLessonInterval = setInterval(renderScheduleWidget, 1000); 
 
             // REMOVED: setVersionTimestamp();
 
@@ -1282,7 +1291,7 @@
         </div>
     </div>
     
-    <div id="version-timestamp">Last Update 28/10/2025 - 12:14</div>
+    <div id="version-timestamp">Last Update 28/10/2025 - 13:21</div>
     </body>
 
 </html>
