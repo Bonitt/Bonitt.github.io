@@ -430,7 +430,7 @@
         let MOCK_BOOKMARKS = [
             { id: 'bm1', name: "Gemini", url: "https://gemini.google.com/", icon: "sparkles" },
             { id: 'bm2', name: "GitHub", url: "https://github.com/", icon: "code" },
-            { id: 'bm3', name: "Learn", url: "https://www.udemy.com/", icon: "book-open" },
+            // REMOVED THE 3RD BOOKMARK OPTION: { id: 'bm3', name: "Learn", url: "https://www.udemy.com/", icon: "book-open" },
             { id: 'bm4', name: "Mail", url: "https://mail.google.com/", icon: "mail" },
         ];
         
@@ -966,11 +966,12 @@
         const handleAddBookmark = async () => {
             const nameInput = document.getElementById('bookmark-name');
             const urlInput = document.getElementById('bookmark-url');
-            const iconInput = document.getElementById('bookmark-icon'); 
-
+            // const iconInput = document.getElementById('bookmark-icon'); // Removed input
+            
             const name = nameInput.value.trim();
             const url = urlInput.value.trim();
-            const icon = iconInput.value.trim() || 'link'; 
+            // Hardcode icon to 'link' since the input was removed
+            const icon = 'link'; 
 
             if (!name || !url) {
                 console.error('Validation Error: Please enter both a name and a URL.');
@@ -985,7 +986,7 @@
                 // Reset form and close modal
                 nameInput.value = '';
                 urlInput.value = '';
-                iconInput.value = '';
+                // iconInput.value = ''; // Removed icon input reset
                 closeBookmarkModal();
             } catch (error) {
                 console.error("Failed to add bookmark:", error);
@@ -1198,7 +1199,7 @@
                         class="w-full p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors">
                 <input type="url" id="bookmark-url" placeholder="URL (e.g., https://news.google.com)"
                         class="w-full p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors">
-            </div>
+                </div>
             <div class="flex justify-end space-x-4 mt-6">
                 <button id="close-bookmark-modal-btn"
                         class="px-5 py-2 rounded-xl bg-gray-600 text-white hover:bg-gray-500 transition-colors">
@@ -1252,4 +1253,3 @@
     </body>
 
 </html>
-
