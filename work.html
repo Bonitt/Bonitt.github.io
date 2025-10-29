@@ -149,7 +149,7 @@
         setLogLevel('debug'); // Enable Firestore logging
 
         // Utility function to get the current collection path for private user data
-        const getCollectionPath = (collectionName) => `/artifacts/${appId}/users/${userId}/${collectionName}`;
+        const getCollectionPath = (collectionName) => `/artifacts/${appId}/users/${userId}/${collectionName}_work`;
 
         // Initialize Firebase and Authentication
         const initFirebase = async () => {
@@ -1298,7 +1298,7 @@
         </div>
     </div>
     
-    <div id="version-timestamp">Last Update 29/10/2025 - 09:26</div>
+    <div id="version-timestamp">Last Update 29/10/2025 - 10:39</div>
     </body>
 
 </html>
