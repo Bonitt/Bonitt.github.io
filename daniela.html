@@ -15,9 +15,11 @@
             margin: 0;
             padding: 0;
             overflow: hidden; /* Prevent body scroll */
+            /* New: Use a light base background color */
+            background-color: #fcfcfc; 
         }
         #background-container {
-            /* Initial background color, no text placeholder */
+            /* Initial background color (light fallback for now) */
             background-image: url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1 1\'%3E%3Crect width=\'1\' height=\'1\' fill=\'%230f172a\'/%3E%3C/svg%3E'); 
             background-size: cover;
             background-position: center;
@@ -28,7 +30,6 @@
             width: 100%;
             height: 100%;
             z-index: -1;
-            /* The darkened filter is REMOVED */
             transition: background-image 1s ease-in-out; /* Smooth background transition */
         }
         .scroll-container {
@@ -36,9 +37,9 @@
             height: 100vh;
             padding: 20px;
         }
-        /* Custom scrollbar for a sleek look */
+        /* Custom scrollbar for a sleek look (MODIFIED for light background) */
         .scroll-container::-webkit-scrollbar { width: 6px; }
-        .scroll-container::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 3px; }
+        .scroll-container::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.3); border-radius: 3px; }
         .scroll-container::-webkit-scrollbar-track { background: transparent; }
 
         .bookmark-icon {
@@ -46,29 +47,29 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
         }
         .bookmark-icon:hover {
-            transform: scale(1.05); /* MODIFIED: Removed translateY(-2px) to fix misalignment */
+            transform: scale(1.05);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
             border-color: #3b82f6;
         }
         
-        /* UPDATED: Favicon styles (from 32px to 24px) */
         .bookmark-favicon {
-            width: 24px; /* Set fixed size for favicons */
+            width: 24px; 
             height: 24px;
             object-fit: contain;
-            /* Optional: add a slight shadow for visibility on dark backgrounds */
-            filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+            /* Remove dark shadow as text is now dark */
+            filter: none; 
         }
 
         .mcast-link-item {
             transition: background-color 0.3s, transform 0.3s;
-            cursor: pointer; /* Indicate it's clickable */
+            cursor: pointer;
         }
+        /* MODIFIED: hover for light theme */
         .mcast-link-item:hover {
-            background-color: rgba(255, 255, 255, 0.15);
+            background-color: rgba(0, 0, 0, 0.05); 
             transform: translateX(5px);
         }
-        /* Standard transition for projects/assignments/bookmarks */
+
         .delete-btn {
             opacity: 0;
             transition: opacity 0.2s;
@@ -78,10 +79,9 @@
             opacity: 1;
         }
 
-        /* Styles for background gallery thumbnails */
         .background-thumbnail {
             width: 100%;
-            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            padding-top: 56.25%; 
             background-size: cover;
             background-position: center;
             cursor: pointer;
@@ -89,26 +89,43 @@
             transition: border-color 0.3s, opacity 0.3s;
         }
         .background-thumbnail:hover {
-            border-color: #3b82f6; /* Blue border on hover */
+            border-color: #3b82f6; 
             opacity: 0.8;
         }
         .background-thumbnail.selected {
-            border-color: #10b981; /* Green border for selected */
+            border-color: #10b981; 
             border-width: 4px;
         }
 
-        /* NEW: Style for the fixed 'Last Updated' timestamp */
+        /* NEW: Style for the fixed 'Last Updated' timestamp (MODIFIED for light theme) */
         #version-timestamp {
             position: fixed;
             bottom: 10px;
             right: 10px;
             z-index: 10;
-            font-size: 0.75rem; /* text-xs */
-            color: rgba(255, 255, 255, 0.5); /* text-white/50 */
-            background-color: rgba(0, 0, 0, 0.3);
+            font-size: 0.75rem; 
+            color: rgba(0, 0, 0, 0.5); /* text-dark/50 */
+            background-color: rgba(255, 255, 255, 0.5);
             padding: 4px 8px;
             border-radius: 6px;
             backdrop-filter: blur(5px);
+        }
+        
+        /* MODIFIED: New Dark Color Palette for light theme contrast */
+        .text-dark-primary {
+            color: #4a2c2c; /* Deep reddish-brown for contrast */
+        }
+        .text-dark-secondary {
+            color: #6a4a4a; /* Slightly lighter shade for secondary text */
+        }
+        .text-dark-tertiary {
+            color: #8a6a6a; /* Even lighter for less prominent text */
+        }
+        
+        /* MODIFIED: Icon color and removal of shadow */
+        .icon-dark-primary {
+            color: #4a2c2c;
+            /* Removed filter: drop-shadow */
         }
     </style>
 
@@ -137,7 +154,7 @@
         
         // FIX: Accessing LOCAL_FIREBASE_CONFIG_JSON and LOCAL_AUTH_TOKEN which are now globally defined.
         const configSource = typeof __firebase_config !== 'undefined' ? __firebase_config : LOCAL_FIREBASE_CONFIG_JSON;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : LOCAL_AUTH_TOKEN;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? LOCAL_AUTH_TOKEN : LOCAL_AUTH_TOKEN;
 
         // Parse the configuration
         const firebaseConfig = JSON.parse(configSource);
@@ -344,8 +361,8 @@
                 // Fallback if no backgrounds are available
                 currentBackgroundId = null;
                 localStorage.removeItem(CURRENT_BG_KEY);
-                // NEW: Removed placeholder text for a smoother initial look (just dark background)
-                backgroundContainer.style.backgroundImage = `url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 1 1\\'%3E%3Crect width=\\'1\\' height=\\'1\\' fill=\\'%230f172a\\'/%3E%3C/svg%3E')`; 
+                // NEW: Use light fallback background for the new theme
+                backgroundContainer.style.backgroundImage = `url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 1 1\\'%3E%3Crect width=\\'1\\' height=\\'1\\' fill=\\'%23fcfcfc\\'/%3E%3C/svg%3E')`; 
             }
         };
 
@@ -355,7 +372,8 @@
             galleryContainer.innerHTML = ''; // Clear gallery
 
             if (userBackgrounds.length === 0) {
-                 galleryContainer.innerHTML = '<p class="text-white/50 text-center col-span-full">No backgrounds uploaded yet. Use the form below to add one!</p>';
+                 // MODIFIED: text-dark-tertiary
+                 galleryContainer.innerHTML = '<p class="text-dark-tertiary text-center col-span-full">No backgrounds uploaded yet. Use the form below to add one!</p>';
                  return;
             }
 
@@ -369,11 +387,11 @@
                          data-bg-id="${bg.id}"
                          title="Click to select: ${bg.name}">
                          </div>
-                    <span class="absolute top-2 left-2 px-2 py-1 bg-black/50 text-white text-xs rounded-full opacity-80">${bg.name}</span>
+                    <span class="absolute top-2 left-2 px-2 py-1 bg-dark-primary/70 text-white text-xs rounded-full opacity-80">${bg.name}</span>
                     <button onclick="window.db.deleteBackground('${bg.id}')"
                             class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-opacity opacity-0 group-hover:opacity-100"
                             title="Delete Background">
-                        <span data-lucide="x" class="w-4 h-4"></span>
+                        <span data-lucide="x" class="w-4 h-4 icon-dark-primary"></span>
                     </button>
                 `;
 
@@ -544,7 +562,7 @@
             for (let i = 1; i <= 7; i++) {
                 const nextDayIndex = (dayIndex + i) % 7;
                 const nextDayName = DAYS_OF_WEEK[nextDayIndex];
-                const nextDaySchedule = TIMETABLE[nextDayName];
+                const nextDaySchedule = TIMETABLE[nextDayName]; // Corrected to use nextDayName
                 
                 // Find the first scheduled event that isn't a weekend or end-of-day marker
                 const firstEvent = nextDaySchedule.find(item => 
@@ -598,8 +616,9 @@
 
             let countdownHTML;
             let icon = "calendar";
-            let statusClass = "text-blue-300";
-            let subText = `Next Up: <span class="font-bold text-white">${title}</span>`;
+            // Use bright, high-contrast colors for status against a light background
+            let statusClass = "text-blue-600"; 
+            let subText = `<span class="text-dark-secondary">Next Up:</span> <span class="font-bold text-dark-primary">${title}</span>`; 
             let timeRangeToDisplay = '';
             let locationPrefix = 'Location: ';
 
@@ -607,14 +626,11 @@
             if (isCurrent && totalSeconds > 0) {
                  // If currently in an activity, display that activity and count down to its end time
                  
-                 statusClass = title === "BREAK" ? "text-green-300" : "text-purple-300";
+                 statusClass = title === "BREAK" ? "text-green-600" : "text-purple-600";
                  icon = title === "BREAK" ? "coffee" : "hourglass";
                  
                  // Display the current activity as the main title
-                 subText = `Currently in: <span class="font-bold text-white">${title}</span>`;
-                 
-                 // If there's a defined 'nextTitle', we can say 'until next lesson'
-                 const countdownLabel = nextTitle ? `Until ${nextTitle}` : 'Until End';
+                 subText = `<span class="text-dark-secondary">Currently in:</span> <span class="font-bold text-dark-primary">${title}</span>`;
                  
                  // MODIFIED: REMOVED SECONDS
                  countdownHTML = `<span class="font-bold">${hours}</span>h <span class="font-bold">${minutes}</span>m left`;
@@ -628,8 +644,8 @@
                 // MODIFIED: REMOVED SECONDS
                 countdownHTML = `<span class="font-bold">${days}</span>d <span class="font-bold">${hours}</span>h <span class="font-bold">${minutes}</span>m`;
                 icon = "calendar-check";
-                statusClass = "text-yellow-300";
-                subText = `First Lesson: <span class="font-bold text-white">${title}</span> (${day})`;
+                statusClass = "text-yellow-700";
+                subText = `<span class="text-dark-secondary">First Lesson:</span> <span class="font-bold text-dark-primary">${title}</span> (${day})`;
                 timeRangeToDisplay = `${start} - ${end}`;
             } else if (totalSeconds > 0) {
                 // If less than a day away (today's next lesson/break)
@@ -637,32 +653,33 @@
                 countdownHTML = `<span class="font-bold">${hours}</span>h <span class="font-bold">${minutes}</span>m`;
                 if (title === "BREAK") {
                     icon = "coffee";
-                    statusClass = "text-green-300";
+                    statusClass = "text-green-600";
                 } else {
                     icon = "clock";
-                    statusClass = "text-blue-300";
+                    statusClass = "text-blue-600";
                 }
                 timeRangeToDisplay = `${start} - ${end}`;
             } else {
                 // End of all scheduled activities or error/countdown expired
                 countdownHTML = "Finished";
                 icon = "sun";
-                statusClass = "text-gray-400";
-                subText = "Classes are over. Enjoy your evening!";
+                statusClass = "text-dark-tertiary";
+                subText = `<span class="text-dark-secondary">Classes are over. Enjoy your evening!</span>`;
                 location = '';
             }
 
+            // MODIFIED: Replaced all text-white/x and text-shadow-outline with new dark classes and light border
             widgetEl.innerHTML = `
                 <div class="flex justify-between items-center w-full">
                     <div class="flex items-center">
-                        <span data-lucide="${icon}" class="w-5 h-5 mr-2 ${statusClass}"></span>
-                        <p class="text-sm text-white/80">${subText}</p>
+                        <span data-lucide="${icon}" class="w-5 h-5 mr-2 ${statusClass} icon-dark-primary"></span>
+                        <p class="text-sm text-dark-secondary">${subText}</p>
                     </div>
-                    <p class="text-sm font-semibold ${statusClass}">${countdownHTML}</p>
+                    <p class="text-sm font-semibold ${statusClass} text-dark-primary">${countdownHTML}</p>
                 </div>
-                <div class="flex justify-between items-center w-full mt-1 border-t border-white/10 pt-1">
-                    <p class="text-xs text-white/60">${timeRangeToDisplay}</p>
-                    <p class="text-xs text-white/60">${location ? locationPrefix + location : ''}</p>
+                <div class="flex justify-between items-center w-full mt-1 border-t border-dark-tertiary/20 pt-1">
+                    <p class="text-xs text-dark-tertiary">${timeRangeToDisplay}</p>
+                    <p class="text-xs text-dark-tertiary">${location ? locationPrefix + location : ''}</p>
                 </div>
             `;
 
@@ -789,10 +806,8 @@
             }
         };
         
-        // REMOVED: Function to display the fixed version timestamp
 
-
-        // --- Rendering Functions (MODIFIED: target="_blank" removed) ---
+        // --- Rendering Functions (MODIFIED: target="_blank" removed, colors updated) ---
 
         /** Renders the MCAST links list. */
         window.renderMCASTLinks = (newLinks) => {
@@ -803,8 +818,8 @@
                     <a href="${link.url}" 
                        rel="noopener noreferrer"
                        title="${link.name}"
-                       class="mcast-link-item block w-full text-left p-3 pr-4 rounded-xl bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm transition-all duration-300">
-                        <span data-lucide="${link.icon || 'link'}" class="inline-block w-4 h-4 mr-2"></span>
+                       class="mcast-link-item block w-full text-left p-3 pr-4 rounded-xl bg-white/70 text-dark-primary hover:bg-white/90 backdrop-blur-sm transition-all duration-300">
+                        <span data-lucide="${link.icon || 'link'}" class="inline-block w-4 h-4 mr-2 icon-dark-primary"></span>
                         ${link.name}
                     </a>
                 </div>
@@ -821,22 +836,21 @@
                 const faviconUrl = domain ? `https://s2.googleusercontent.com/s2/favicons?domain=${domain}&sz=64` : null;
 
                 // Determine content of the bookmark tile
-                // UPDATED: Lucide fallback icon size changed from w-8 h-8 to w-6 h-6
                 const iconContent = faviconUrl 
-                    ? `<img src="${faviconUrl}" alt="${b.name} Favicon" class="bookmark-favicon" onerror="this.outerHTML='<span data-lucide=${b.icon || 'link'} class=\\'w-6 h-6 text-white\\'></span>'"/>`
-                    : `<span data-lucide="${b.icon || 'link'}" class="w-6 h-6 text-white"></span>`;
+                    ? `<img src="${faviconUrl}" alt="${b.name} Favicon" class="bookmark-favicon" onerror="this.outerHTML='<span data-lucide=${b.icon || 'link'} class=\\'w-6 h-6 icon-dark-primary\\'></span>'"/>`
+                    : `<span data-lucide="${b.icon || 'link'}" class="w-6 h-6 icon-dark-primary"></span>`;
 
 
                 return `
                 <div class="bookmark-item-wrap relative">
                     <a href="${b.url}" rel="noopener noreferrer" title="${b.name}"
-                        class="bookmark-icon flex flex-col items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/10 border border-white/20 rounded-2xl hover:border-blue-400">
+                        class="bookmark-icon flex flex-col items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/70 border border-white/90 rounded-2xl hover:border-blue-400">
                         ${iconContent}
-                        <span class="text-xs text-white/80 mt-1 truncate max-w-full">${b.name}</span>
+                        <span class="text-xs text-dark-secondary mt-1 truncate max-w-full">${b.name}</span>
                     </a>
                     <button onclick="window.db.deleteBookmark('${b.id}')"
-                            class="delete-btn absolute top-[-5px] right-[-5px] w-6 h-6 flex items-center justify-center bg-white/20 text-white rounded-full p-0.5 shadow-md hover:bg-white/40 transition-colors">
-                        <span data-lucide="x" class="w-3 h-3"></span>
+                            class="delete-btn absolute top-[-5px] right-[-5px] w-6 h-6 flex items-center justify-center bg-dark-primary/20 text-dark-primary rounded-full p-0.5 shadow-md hover:bg-dark-primary/30 transition-colors">
+                        <span data-lucide="x" class="w-3 h-3 icon-dark-primary"></span>
                     </button>
                 </div>
                 `;
@@ -845,9 +859,9 @@
             // Add the 'Add Bookmark' button at the end
             container.innerHTML += `
                 <button id="open-bookmark-modal-btn"
-                        class="flex flex-col items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/5 border border-white/10 rounded-2xl text-white/50 hover:text-white hover:border-blue-500 transition-all duration-300"
+                        class="flex flex-col items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/50 border border-white/70 rounded-2xl text-dark-tertiary hover:text-dark-primary hover:border-blue-500 transition-all duration-300"
                         title="Add New Bookmark">
-                    <span data-lucide="plus" class="w-8 h-8"></span>
+                    <span data-lucide="plus" class="w-8 h-8 icon-dark-primary"></span>
                     <span class="text-xs mt-1">Add</span>
                 </button>
             `;
@@ -865,7 +879,8 @@
             list.innerHTML = ''; // Clear existing list
 
             if (assignments.length === 0) {
-                list.innerHTML = '<p class="text-white/50 text-center mt-4">No upcoming assignments. Add one!</p>';
+                // MODIFIED: text-dark-tertiary
+                list.innerHTML = '<p class="text-dark-tertiary text-center mt-4">No upcoming assignments. Add one!</p>';
             }
 
             assignments.forEach(assignment => {
@@ -879,23 +894,25 @@
                 const formattedDate = `${day}/${month}/${year}`; // European format (dd/mm/yyyy)
                 // END: MODIFICATION FOR DD/MM/YYYY FORMAT
 
+                // MODIFIED: Text colors for countdown
                 const countdownHTML = `
-                    <div id="countdown-${assignment.id}" class="text-xs font-mono text-yellow-300 mt-1">
+                    <div id="countdown-${assignment.id}" class="text-xs font-mono text-yellow-700 mt-1">
                         Calculating...
                     </div>
                 `;
+                // MODIFIED: Container colors
                 const item = document.createElement('div');
-                item.id = `assignment-item-${assignment.id}`; // Add ID for better targeting
-                item.className = 'assignment-item flex justify-between items-start p-3 rounded-lg bg-white/5 backdrop-blur-sm shadow-md transition-all duration-300';
+                item.id = `assignment-item-${assignment.id}`; 
+                item.className = 'assignment-item flex justify-between items-start p-3 rounded-lg bg-white/70 backdrop-blur-sm shadow-md transition-all duration-300';
                 item.innerHTML = `
                     <div>
-                        <p class="text-sm font-semibold text-white">${assignment.title}</p>
-                        <p class="text-xs text-white/70">${formattedDate}</p>
+                        <p class="text-sm font-semibold text-dark-primary">${assignment.title}</p>
+                        <p class="text-xs text-dark-secondary">${formattedDate}</p>
                         ${countdownHTML}
                     </div>
                     <button onclick="window.db.deleteAssignment('${assignment.id}')"
-                            class="delete-btn text-red-400 hover:text-red-500 transition-colors duration-200 p-1 rounded">
-                        <span data-lucide="x" class="w-4 h-4"></span>
+                            class="delete-btn text-red-500 hover:text-red-700 transition-colors duration-200 p-1 rounded">
+                        <span data-lucide="x" class="w-4 h-4 icon-dark-primary"></span>
                     </button>
                 `;
                 list.appendChild(item);
@@ -922,7 +939,8 @@
                 const remaining = getTimeRemaining(deadlineDate);
 
                 if (remaining.total <= 0) {
-                    countdownEl.innerHTML = '<span class="text-red-400">!! DEADLINE PASSED !!</span>';
+                    // MODIFIED: Text colors
+                    countdownEl.innerHTML = '<span class="text-red-600">!! DEADLINE PASSED !!</span>';
                     return;
                 }
 
@@ -937,7 +955,7 @@
         };
 
 
-        // --- Modal Logic ---
+        // --- Modal Logic (MODIFIED for light theme modals) ---
 
         // Assignment Modal
         const openAssignmentModal = () => document.getElementById('assignment-modal').classList.remove('opacity-0', 'pointer-events-none');
@@ -1114,7 +1132,7 @@
 
     </script>
 </head>
-<body class="bg-gray-900">
+<body class="bg-white">
 
     <div id="background-container"></div>
 
@@ -1122,10 +1140,10 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-7 gap-8 w-full max-w-7xl pt-16 lg:pt-0 pb-16">
 
-            <div class="lg:col-span-2 p-6 bg-white/10 rounded-3xl backdrop-blur-xl shadow-2xl h-fit">
+            <div class="lg:col-span-2 p-6 bg-white/70 rounded-3xl backdrop-blur-xl shadow-2xl h-fit border border-gray-100">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-white flex items-center">
-                        <span data-lucide="graduation-cap" class="w-6 h-6 mr-2 text-blue-400"></span>
+                    <h2 class="text-xl font-bold text-dark-primary flex items-center">
+                        <span data-lucide="graduation-cap" class="w-6 h-6 mr-2 text-blue-600 icon-dark-primary"></span>
                         UoM Links
                     </h2>
                     </div>
@@ -1135,41 +1153,41 @@
 
             <div class="lg:col-span-3 flex flex-col items-center justify-center p-6 space-y-8">
                 
-                <div id="next-lesson-widget" class="w-full max-w-2xl p-4 bg-white/10 rounded-xl backdrop-blur-md shadow-lg border border-white/20">
-                    <p class="text-white/50 text-center">Loading timetable...</p>
+                <div id="next-lesson-widget" class="w-full max-w-2xl p-4 bg-white/70 rounded-xl backdrop-blur-md shadow-lg border border-gray-100">
+                    <p class="text-dark-tertiary text-center">Loading timetable...</p>
                 </div>
                 <form id="search-form" class="w-full max-w-2xl relative">
                     <input type="text" id="search-input" placeholder="Search Google or type a URL..."
-                            class="w-full p-4 pl-12 bg-white/90 text-gray-900 border-2 border-transparent focus:border-blue-500 rounded-full shadow-lg outline-none transition-all duration-300"
+                            class="w-full p-4 pl-12 bg-white/90 text-dark-primary border-2 border-transparent focus:border-blue-500 rounded-full shadow-lg outline-none transition-all duration-300"
                             autofocus>
-                    <span data-lucide="search" class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500"></span>
+                    <span data-lucide="search" class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-dark-secondary icon-dark-primary"></span>
                     <button type="submit" class="hidden">Search</button>
                 </form>
 
-                <div id="bookmark-container" class="grid grid-cols-4 gap-4 sm:gap-6 p-4 rounded-3xl bg-white/5 backdrop-blur-md shadow-inner max-w-2xl w-full">
+                <div id="bookmark-container" class="grid grid-cols-4 gap-4 sm:gap-6 p-4 rounded-3xl bg-white/50 backdrop-blur-md shadow-inner max-w-2xl w-full border border-gray-100">
                     </div>
 
                 <div class="flex justify-center w-full">
                     <button id="open-background-gallery-btn"
-                            class="flex items-center text-sm text-white/70 hover:text-white transition-colors p-3 rounded-full bg-white/10 hover:bg-white/20">
-                        <span data-lucide="gallery-vertical" class="w-4 h-4 mr-2"></span>
+                            class="flex items-center text-sm text-dark-secondary hover:text-dark-primary transition-colors p-3 rounded-full bg-white/70 hover:bg-white/90 border border-gray-100">
+                        <span data-lucide="gallery-vertical" class="w-4 h-4 mr-2 icon-dark-primary"></span>
                         Manage Backgrounds
                     </button>
                 </div>
 
-                <p id="user-id-display" class="text-xs text-white/50 mt-4"></p>
+                <p id="user-id-display" class="text-xs text-dark-tertiary mt-4"></p>
             </div>
 
-            <div class="lg:col-span-2 p-6 bg-white/10 rounded-3xl backdrop-blur-xl shadow-2xl h-fit">
+            <div class="lg:col-span-2 p-6 bg-white/70 rounded-3xl backdrop-blur-xl shadow-2xl h-fit border border-gray-100">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-white flex items-center">
-                        <span data-lucide="calendar-days" class="w-6 h-6 mr-2 text-green-400"></span>
+                    <h2 class="text-xl font-bold text-dark-primary flex items-center">
+                        <span data-lucide="calendar-days" class="w-6 h-6 mr-2 text-green-600 icon-dark-primary"></span>
                         Upcoming Assignments
                     </h2>
                     <button id="open-assignment-modal-btn"
                             class="w-8 h-8 flex items-center justify-center bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-transform transform hover:scale-110"
                             title="Add New Assignment">
-                        <span data-lucide="plus" class="w-5 h-5"></span>
+                        <span data-lucide="plus" class="w-5 h-5 icon-dark-primary"></span>
                     </button>
                 </div>
 
@@ -1181,17 +1199,17 @@
 
     <div id="assignment-modal"
          class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300 opacity-0 pointer-events-none z-50">
-        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-700 transform transition-all duration-300 scale-100">
-            <h3 class="text-2xl font-bold text-white mb-6">Add New Assignment</h3>
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 transform transition-all duration-300 scale-100">
+            <h3 class="text-2xl font-bold text-dark-primary mb-6">Add New Assignment</h3>
             <div class="space-y-4">
                 <input type="text" id="assignment-title" placeholder="Assignment Title (e.g., Final Paper)"
-                        class="w-full p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors">
+                        class="w-full p-3 rounded-xl bg-gray-100 text-dark-primary placeholder-dark-tertiary border border-gray-300 focus:border-blue-500 outline-none transition-colors">
                 <input type="date" id="assignment-deadline"
-                        class="w-full p-3 rounded-xl bg-gray-700 text-white border border-gray-600 focus:border-blue-500 outline-none transition-colors">
+                        class="w-full p-3 rounded-xl bg-gray-100 text-dark-primary border border-gray-300 focus:border-blue-500 outline-none transition-colors">
             </div>
             <div class="flex justify-end space-x-4 mt-6">
                 <button id="close-assignment-modal-btn"
-                        class="px-5 py-2 rounded-xl bg-gray-600 text-white hover:bg-gray-500 transition-colors">
+                        class="px-5 py-2 rounded-xl bg-gray-300 text-dark-primary hover:bg-gray-400 transition-colors">
                     Cancel
                 </button>
                 <button id="add-assignment-btn"
@@ -1204,17 +1222,17 @@
 
     <div id="bookmark-modal"
          class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300 opacity-0 pointer-events-none z-50">
-        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-700 transform transition-all duration-300 scale-100">
-            <h3 class="text-2xl font-bold text-white mb-6">Add New Bookmark</h3>
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 transform transition-all duration-300 scale-100">
+            <h3 class="text-2xl font-bold text-dark-primary mb-6">Add New Bookmark</h3>
             <div class="space-y-4">
                 <input type="text" id="bookmark-name" placeholder="Name (e.g., Google News)"
-                        class="w-full p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors">
+                        class="w-full p-3 rounded-xl bg-gray-100 text-dark-primary placeholder-dark-tertiary border border-gray-300 focus:border-blue-500 outline-none transition-colors">
                 <input type="url" id="bookmark-url" placeholder="URL (e.g., https://news.google.com)"
-                        class="w-full p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors">
+                        class="w-full p-3 rounded-xl bg-gray-100 text-dark-primary placeholder-dark-tertiary border border-gray-300 focus:border-blue-500 outline-none transition-colors">
                 </div>
             <div class="flex justify-end space-x-4 mt-6">
                 <button id="close-bookmark-modal-btn"
-                        class="px-5 py-2 rounded-xl bg-gray-600 text-white hover:bg-gray-500 transition-colors">
+                        class="px-5 py-2 rounded-xl bg-gray-300 text-dark-primary hover:bg-gray-400 transition-colors">
                     Cancel
                 </button>
                 <button id="add-bookmark-btn"
@@ -1227,32 +1245,32 @@
 
     <div id="background-gallery-modal"
          class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300 opacity-0 pointer-events-none z-50">
-        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-4xl border border-gray-700 transform transition-all duration-300 scale-100 h-5/6 flex flex-col">
-            <h3 class="text-2xl font-bold text-white mb-6 flex items-center">
-                <span data-lucide="gallery-vertical" class="w-6 h-6 mr-2"></span>
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-4xl border border-gray-200 transform transition-all duration-300 scale-100 h-5/6 flex flex-col">
+            <h3 class="text-2xl font-bold text-dark-primary mb-6 flex items-center">
+                <span data-lucide="gallery-vertical" class="w-6 h-6 mr-2 icon-dark-primary"></span>
                 Manage Your Backgrounds
             </h3>
 
             <div class="flex-grow overflow-y-auto pr-2 mb-6 space-y-4">
-                <h4 class="text-lg font-semibold text-white mb-3 border-b border-gray-700 pb-2">Select or Delete</h4>
+                <h4 class="text-lg font-semibold text-dark-primary mb-3 border-b border-gray-300 pb-2">Select or Delete</h4>
                 <div id="background-gallery-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                    <p class="text-white/50 text-center col-span-full">Loading backgrounds...</p>
+                    <p class="text-dark-tertiary text-center col-span-full">Loading backgrounds...</p>
                 </div>
                 
-                <h4 class="text-lg font-semibold text-white mb-3 pt-6 border-t border-gray-700 pt-4">Add New Background</h4>
+                <h4 class="text-lg font-semibold text-dark-primary mb-3 pt-6 border-t border-gray-300 pt-4">Add New Background</h4>
                 
                 <div class="space-y-4">
-                     <p class="text-sm text-white/70">Upload an image file (e.g., JPG, PNG). Max size: 2MB.</p>
+                     <p class="text-sm text-dark-secondary">Upload an image file (e.g., JPG, PNG). Max size: 2MB.</p>
                     <input type="text" id="background-file-name" placeholder="Optional: Give this background a name"
-                            class="w-full p-3 rounded-xl bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors">
+                            class="w-full p-3 rounded-xl bg-gray-100 text-dark-primary placeholder-dark-tertiary border border-gray-300 focus:border-blue-500 outline-none transition-colors">
                     <input type="file" id="background-image-file" accept="image/*"
-                            class="w-full text-white/80 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600">
+                            class="w-full text-dark-secondary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600">
                 </div>
             </div>
 
-            <div class="flex justify-end space-x-4 mt-auto border-t border-gray-700 pt-4">
+            <div class="flex justify-end space-x-4 mt-auto border-t border-gray-300 pt-4">
                  <button id="close-background-gallery-modal-btn"
-                        class="px-5 py-2 rounded-xl bg-gray-600 text-white hover:bg-gray-500 transition-colors">
+                        class="px-5 py-2 rounded-xl bg-gray-300 text-dark-primary hover:bg-gray-400 transition-colors">
                     Close Gallery
                 </button>
                 <button id="add-background-btn"
@@ -1263,7 +1281,7 @@
         </div>
     </div>
     
-    <div id="version-timestamp">Last Update 29/10/2025 - 19:44</div>
+    <div id="version-timestamp" class="text-dark-secondary">Last Update 29/10/2025 - 20:12</div>
     </body>
 
 </html>
