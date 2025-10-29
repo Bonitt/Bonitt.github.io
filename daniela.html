@@ -150,53 +150,30 @@
         // Utility function to get the current collection path for private user data
         const getCollectionPath = (collectionName) => `/artifacts/${appId}/users/${userId}/${collectionName}_daniela`;
 
-        // Initialize Firebase and Authentication
         const initFirebase = async () => {
             try {
-                // Initialize app with the provided configuration
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                
-                // Sign in with custom token if available, otherwise sign in anonymously.
-                if (initialAuthToken) {
-                    console.log("Attempting sign-in with custom token...");
-                    await signInWithCustomToken(auth, initialAuthToken).catch(e => {
-                        console.warn("Custom token sign-in failed, trying anonymous:", e);
-                        return signInAnonymously(auth);
-                    });
-                } else {
-                    console.log("Attempting anonymous sign-in...");
-                    await signInAnonymously(auth);
-                }
 
-                // Wait for auth state to be resolved
+                // sign in anonymously so Firestore rules pass
+                await signInAnonymously(auth);
                 onAuthStateChanged(auth, (user) => {
-                    if (user && user.uid) {
-                        userId = user.uid; 
-                        isAuthReady = true;
-                        console.log("Firebase Auth Ready. User ID:", userId);
-
-                        // Once ready, start loading persistent data
-                        setupDataListeners();
-                        // Display the user ID for debugging/sharing purposes
-                        document.getElementById('user-id-display').textContent = `User ID: ${userId}`;
-                    } else {
-                         // If onAuthStateChanged resolves without a user (e.g., failed to get a custom/anonymous token)
-                         // Set a temporary user ID and call mock data as a last resort.
-                         userId = crypto.randomUUID();
-                         isAuthReady = true;
-                         console.log("Auth state resolved without persistent user. Activating Mock Mode via listener fallback.");
-                         window.setupMockData();
-                    }
+                if (user) {
+                    // Force same logical userId for shared data path
+                    userId = "daniela_shared_user";
+                    isAuthReady = true;
+                    console.log("Using shared user ID:", userId);
+                    document.getElementById('user-id-display').textContent = `User ID: ${userId}`;
+                    setupDataListeners();
+                }
                 });
-
-            } catch (error) {
-                // This catch block is only for core initialization failures (e.g., bad config, network)
-                console.error("Firebase Initialization failed, falling back to Mock Mode:", error);
-                window.setupMockData(); 
+            } catch (e) {
+                console.error("Firebase initialization failed:", e);
+                window.setupMockData();
             }
-        };
+            };
+
 
         // --- Data Listener Setup (Only runs if Firestore is successfully initialized) ---
         const setupDataListeners = () => {
@@ -1286,7 +1263,7 @@
         </div>
     </div>
     
-    <div id="version-timestamp">Last Update 29/10/2025 - 19:12</div>
+    <div id="version-timestamp">Last Update 29/10/2025 - 19:44</div>
     </body>
 
 </html>
