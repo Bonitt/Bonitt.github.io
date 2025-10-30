@@ -129,7 +129,8 @@
         // --- USING v12.4.0 CDN LINKS AS REQUESTED ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-        import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, setLogLevel } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+        // MODIFIED IMPORT: Added setDoc for updating assignment details.
+        import { getFirestore, doc, addDoc, deleteDoc, setDoc, onSnapshot, collection, setLogLevel } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
         // --- END v12.4.0 IMPORTS ---
 
         // Determine environment: Use Canvas globals OR local fallbacks
@@ -263,10 +264,24 @@
                         title: title,
                         // Storing date as ISO string is better for cross-platform/language consistency in Firestore
                         deadline: deadlineDate.toISOString(), 
-                        createdAt: new Date().toISOString()
+                        createdAt: new Date().toISOString(),
+                        note: "" // NEW: Default empty note field
                     });
                     console.log("Assignment added to Firestore successfully.");
                 } catch (e) { console.error("Error adding document: ", e); }
+            },
+            // NEW: Function to update existing assignment
+            updateAssignment: async (id, title, deadlineDate, note) => {
+                if (!db || !userId || !isAuthReady) { console.error("Firestore not initialized for persistence."); return; }
+                try {
+                    await setDoc(doc(db, getCollectionPath('assignments'), id), {
+                        title: title,
+                        // Ensure deadline is stored as ISO string, not a Date object, for consistency
+                        deadline: deadlineDate instanceof Date ? deadlineDate.toISOString() : deadlineDate, 
+                        note: note // NEW: Update the note field
+                    }, { merge: true }); // Use merge: true to update fields without replacing the whole document
+                    console.log("Assignment updated in Firestore successfully.");
+                } catch (e) { console.error("Error updating document: ", e); }
             },
             deleteAssignment: async (id) => {
                 if (!db || !userId || !isAuthReady) { console.error("Firestore not initialized for persistence."); return; }
@@ -327,6 +342,98 @@
         const CURRENT_BG_KEY = 'currentBackgroundId';
         let currentBackgroundId = localStorage.getItem(CURRENT_BG_KEY) || null;
         let backgroundContainer;
+
+        // NEW: Assignment Note/Edit Modal Logic
+        let currentAssignmentToEdit = null;
+
+        // Declare modal elements globally (will be initialized in window.onload)
+        let noteModal = null;
+        let noteTitle = null;
+        let noteTextarea = null;
+        let noteDeadline = null;
+        let noteDateInput = null;
+        
+        /** Shows the modal with assignment details. */
+        window.showNoteModal = (assignment) => {
+            // Ensure the modal element has been successfully retrieved
+            if (!noteModal) {
+                console.error("Assignment Note Modal element not found. Check if the modal HTML is loaded.");
+                return;
+            }
+
+            currentAssignmentToEdit = assignment;
+            
+            // Set static title
+            noteTitle.textContent = assignment.title;
+            
+            // Set dynamic deadline date and input field value
+            let formattedDate = '';
+            let displayDate = 'N/A';
+
+            if (assignment.deadline) {
+                // deadline can be a Date object (from Firebase listener) or an ISO string (from mock data)
+                const date = assignment.deadline instanceof Date ? assignment.deadline : new Date(assignment.deadline);
+                
+                // Format for input type="date" (YYYY-MM-DD)
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                formattedDate = `${yyyy}-${mm}-${dd}`;
+                
+                // Format for display (match existing assignment list display)
+                displayDate = date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+
+                noteDeadline.textContent = `Due: ${displayDate}`;
+                noteDateInput.value = formattedDate;
+            } else {
+                noteDeadline.textContent = 'Due: N/A';
+                noteDateInput.value = '';
+            }
+            
+            // Set note text (ensure we handle null/undefined note field)
+            noteTextarea.value = assignment.note || '';
+            
+            // Show the modal
+            noteModal.classList.remove('hidden');
+        }
+
+        /** Saves the changes back to Firestore. */
+        window.saveAssignmentChanges = async () => {
+            if (!currentAssignmentToEdit) return;
+
+            const newNote = noteTextarea.value;
+            const newDateString = noteDateInput.value;
+            
+            // Check if the date input is empty or valid
+            if (!newDateString) {
+                alert("Please select a valid deadline date.");
+                return;
+            }
+
+            // Creating a Date object for updateAssignment. The function will convert it to ISO string.
+            const newDateObject = new Date(newDateString); 
+            
+            // Call the newly added Firestore update function
+            await window.db.updateAssignment(
+                currentAssignmentToEdit.id, 
+                currentAssignmentToEdit.title, // Title is not edited in this modal
+                newDateObject, 
+                newNote
+            );
+            
+            // Hide the modal
+            window.hideNoteModal();
+        }
+
+        /** Hides the modal. */
+        window.hideNoteModal = () => {
+            if (noteModal) {
+                noteModal.classList.add('hidden');
+            }
+            currentAssignmentToEdit = null;
+        }
+
+        // --- END NEW Assignment Note/Edit Modal Logic ---
 
         /** Sets the user's available backgrounds array. */
         window.setUserBackgrounds = (newBackgrounds) => {
@@ -433,8 +540,9 @@
                 const nextWeek = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
                 MOCK_ASSIGNMENTS = [
                     // Ensure mock deadlines are in the future for display
-                    { id: 'mock1', title: 'Database Design Exam (Mock)', deadline: tomorrow, createdAt: new Date() },
-                    { id: 'mock2', title: 'Physics Lab Report (Mock)', deadline: nextWeek, createdAt: new Date() },
+                    // MODIFIED: Added note field
+                    { id: 'mock1', title: 'Database Design Exam (Mock)', deadline: tomorrow, createdAt: new Date(), note: "Start studying Chapter 4." },
+                    { id: 'mock2', title: 'Physics Lab Report (Mock)', deadline: nextWeek, createdAt: new Date(), note: "" }, // Example empty note
                 ];
             }
             return MOCK_ASSIGNMENTS;
@@ -734,11 +842,24 @@
             window.db = {
                 // Assignments Mock
                 addAssignment: (title, deadlineDate) => {
-                    const newAssignment = { id: crypto.randomUUID(), title: `${title} (Mock)`, deadline: deadlineDate, createdAt: new Date() };
+                    // MODIFIED: Added note: ""
+                    const newAssignment = { id: crypto.randomUUID(), title: `${title} (Mock)`, deadline: deadlineDate, createdAt: new Date(), note: "" };
                     assignments.push(newAssignment);
                     assignments.sort((a, b) => (a.deadline || 0) - (b.deadline || 0));
                     window.renderAssignments(assignments);
                     console.warn("MOCK MODE: Assignment added locally, but will NOT persist on refresh.");
+                },
+                // NEW: Mock updateAssignment
+                updateAssignment: (id, title, deadlineDate, note) => {
+                    assignments = assignments.map(a => {
+                        if (a.id === id) {
+                            return { ...a, title: title, deadline: deadlineDate, note: note };
+                        }
+                        return a;
+                    });
+                    assignments.sort((a, b) => (a.deadline || 0) - (b.deadline || 0));
+                    window.renderAssignments(assignments);
+                    console.warn("MOCK MODE: Assignment updated locally (not persistent).");
                 },
                 deleteAssignment: (id) => {
                     assignments = assignments.filter(a => a.id !== id);
@@ -914,18 +1035,30 @@
                 `;
                 const item = document.createElement('div');
                 item.id = `assignment-item-${assignment.id}`; // Add ID for better targeting
-                item.className = 'assignment-item flex justify-between items-start p-3 rounded-lg bg-white/5 backdrop-blur-sm shadow-md transition-all duration-300';
+                // MODIFIED CLASS: Added cursor-pointer and hover effect for clickability
+                item.className = 'assignment-item flex justify-between items-start p-3 rounded-lg bg-white/5 backdrop-blur-sm shadow-md transition-all duration-300 cursor-pointer hover:bg-white/10';
                 item.innerHTML = `
-                    <div>
-                        <p class="text-sm font-semibold text-white">${assignment.title}</p>
+                    <div class="flex-grow min-w-0">
+                        <p class="text-sm font-semibold text-white truncate">${assignment.title}</p>
                         <p class="text-xs text-white/70">${formattedDate}</p>
                         ${countdownHTML}
+                        ${assignment.note ? `<p class="text-xs text-blue-300/80 truncate mt-1">Note: ${assignment.note}</p>` : ''}
                     </div>
                     <button onclick="window.db.deleteAssignment('${assignment.id}')"
-                            class="delete-btn text-red-400 hover:text-red-500 transition-colors duration-200 p-1 rounded">
+                            class="delete-btn text-red-400 hover:text-red-500 transition-colors duration-200 p-1 rounded flex-shrink-0">
                         <span data-lucide="x" class="w-4 h-4"></span>
                     </button>
                 `;
+                
+                // NEW: Add click listener to open the note modal
+                item.addEventListener('click', (event) => {
+                    // Prevent opening the modal if the delete button was clicked
+                    if (event.target.closest('.delete-btn')) {
+                        return;
+                    }
+                    window.showNoteModal(assignment);
+                });
+
                 list.appendChild(item);
             });
 
@@ -967,7 +1100,7 @@
 
         // --- Modal Logic ---
 
-        // Assignment Modal
+        // Assignment Modal (for ADDING new)
         const openAssignmentModal = () => document.getElementById('assignment-modal').classList.remove('opacity-0', 'pointer-events-none');
         const closeAssignmentModal = () => document.getElementById('assignment-modal').classList.add('opacity-0', 'pointer-events-none');
 
@@ -1098,9 +1231,23 @@
             // Update every second for accuracy (1000ms)
             nextLessonInterval = setInterval(renderScheduleWidget, 1000); 
 
-            // REMOVED: setVersionTimestamp();
+            // --- Initialize Note Modal Elements (CORRECTED TIMING) ---
+            noteModal = document.getElementById('assignment-note-modal');
+            noteTitle = document.getElementById('note-assignment-title');
+            noteTextarea = document.getElementById('assignment-note-textarea');
+            noteDeadline = document.getElementById('note-assignment-deadline');
+            noteDateInput = document.getElementById('note-date-input');
 
-            // Attach event listeners for Assignment Modal
+            // Attach event listeners for the Note Modal buttons (moved from DOMContentLoaded)
+            if (document.getElementById('save-note-btn')) {
+                document.getElementById('save-note-btn').addEventListener('click', window.saveAssignmentChanges);
+            }
+            if (document.getElementById('cancel-note-btn')) {
+                document.getElementById('cancel-note-btn').addEventListener('click', window.hideNoteModal);
+            }
+            // --- END Note Modal Initialization ---
+
+            // Attach event listeners for Assignment Modal (ADD NEW)
             document.getElementById('open-assignment-modal-btn').addEventListener('click', openAssignmentModal);
             document.getElementById('close-assignment-modal-btn').addEventListener('click', closeAssignmentModal);
             document.getElementById('add-assignment-btn').addEventListener('click', handleAddAssignment);
@@ -1291,7 +1438,42 @@
         </div>
     </div>
     
-    <div id="version-timestamp">Last Update 29/10/2025 - 10:39</div>
+    <div id="assignment-note-modal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-4 transition-opacity duration-300">
+        <div class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 flex flex-col space-y-4">
+            <h2 class="text-xl font-bold text-white border-b border-gray-700 pb-3">Assignment Notes</h2>
+
+            <div class="flex justify-between items-center">
+                <p id="note-assignment-title" class="text-lg text-blue-400 font-medium truncate">Assignment Title</p>
+                <p id="note-assignment-deadline" class="text-sm text-white/70">Due: N/A</p>
+            </div>
+
+            <div>
+                <label for="assignment-note-textarea" class="block text-sm font-medium text-white/80 mb-1">Note:</label>
+                <textarea id="assignment-note-textarea"
+                          rows="4"
+                          placeholder="Add your study notes or status here..."
+                          class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 outline-none transition-colors"></textarea>
+            </div>
+            
+            <div>
+                <label for="note-date-input" class="block text-sm font-medium text-white/80 mb-1">Deadline:</label>
+                <input type="date" id="note-date-input"
+                       class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 outline-none transition-colors">
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-2">
+                <button id="cancel-note-btn"
+                        class="px-4 py-2 rounded-xl bg-gray-600 text-white hover:bg-gray-500 transition-colors">
+                    Cancel
+                </button>
+                <button id="save-note-btn"
+                        class="px-4 py-2 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="version-timestamp">Last Update 30/10/2025 - 13:04</div>
     </body>
 
 </html>
